@@ -1,10 +1,14 @@
 .env
+*.secret
+toolbox.log
+
+# Python
 __pycache__/
 *.pyc
+
+# OS
 .DS_Store
-.env
-*.secret
+
+# Binary
 bin/toolbox
-.env
-*.secret
-bin/toolbox
+
