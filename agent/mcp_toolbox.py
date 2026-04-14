@@ -26,11 +26,12 @@ except ImportError:  # pragma: no cover - optional dependency
 
 load_dotenv()
 
-TOOLBOX_URL = os.getenv("TOOLBOX_URL", "http://127.0.0.1:5000")
+TOOLBOX_URL = os.getenv("MCP_TOOLBOX_URL", os.getenv("TOOLBOX_URL", "http://localhost:5000"))
 DUCKDB_PATH = os.getenv("DUCKDB_PATH", "./data/dataset.duckdb")
 
-HTTP_SOURCE_TYPES = {"postgres", "mongodb", "sqlite"}
+HTTP_SOURCE_TYPES = {"postgres", "mongodb"}
 DUCKDB_SOURCE_TYPES = {"duckdb"}
+SQLITE_SOURCE_TYPES = {"sqlite"}
 
 
 @dataclass
@@ -47,11 +48,21 @@ class ToolResult:
 
 class MCPToolbox:
     """
-    Hybrid MCP client routing to HTTP toolbox or direct DuckDB driver.
+    Hybrid MCP client routing to HTTP toolbox or direct drivers.
+
+    Routing:
+      postgres / mongodb  → HTTP Google MCP Toolbox (team-dab-toolbox)
+      sqlite              → direct sqlite3 Python driver
+      duckdb              → direct duckdb Python driver
     """
 
-    def __init__(self, toolbox_url: str = TOOLBOX_URL):
+    def __init__(
+        self,
+        toolbox_url: str = TOOLBOX_URL,
+        db_configs: Optional[Dict[str, dict]] = None,
+    ):
         self.toolbox_url = toolbox_url
+        self._db_configs: Dict[str, dict] = db_configs or {}
         self._duckdb_conn = None
         self._request_ids = itertools.count(1)
         self._tool_source_map: Dict[str, str] = {}

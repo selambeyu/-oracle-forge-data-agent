@@ -60,6 +60,16 @@ tools:
     limit: 5
     description: Find documents in the Yelp checkin collection.
 
+  run_query:
+    kind: postgres-sql
+    source: postgres_main
+    description: Execute an arbitrary SQL query against the PostgreSQL database.
+    parameters:
+      - name: query
+        type: string
+        description: SQL statement to execute
+    statement: "{{ params.query }}"
+
 toolsets:
   oracle_forge:
     tools:
@@ -68,3 +78,4 @@ toolsets:
       - preview_books_info
       - find_yelp_businesses
       - find_yelp_checkins
+      - run_query
