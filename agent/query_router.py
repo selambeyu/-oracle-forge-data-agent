@@ -297,22 +297,66 @@ class QueryRouter:
             "mentioned in this question. Return a JSON array of strings only.\n\n"
             f"Question: {question}"
         )
-        response = self._client.messages.create(
-            model="claude-sonnet-4-6",
-            max_tokens=256,
-            temperature=0,
-            messages=[{"role": "user", "content": prompt}],
-        )
-        text = response.content[0].text.strip()
-        # Extract JSON array from response
-        match = re.search(r"\[.*?\]", text, re.DOTALL)
-        if match:
-            try:
-                return json.loads(match.group())
-            except json.JSONDecodeError:
-                pass
-        # Fallback: split on commas
-        return [e.strip().strip('"') for e in text.strip("[]").split(",") if e.strip()]
+        try:
+            response = self._client.messages.create(
+                model="claude-sonnet-4-6",
+                max_tokens=256,
+                temperature=0,
+                messages=[{"role": "user", "content": prompt}],
+            )
+            text = response.content[0].text.strip()
+            # Extract JSON array from response
+            match = re.search(r"\[.*?\]", text, re.DOTALL)
+            if match:
+                try:
+                    parsed = json.loads(match.group())
+                    if parsed:
+                        return parsed
+                except json.JSONDecodeError:
+                    pass
+            parsed = [e.strip().strip('"') for e in text.strip("[]").split(",") if e.strip()]
+            if parsed:
+                return parsed
+        except Exception:
+            pass
+        return self._extract_entities_locally(question)
+
+    def _extract_entities_locally(self, question: str) -> List[str]:
+        """Best-effort local entity extraction when the LLM is unavailable."""
+        lowered = question.lower()
+        candidates: List[str] = []
+
+        # Prefer explicit SQL-style identifiers first.
+        for match in re.findall(r"\b[a-z_][a-z0-9_]*\b", lowered):
+            if "_" in match:
+                candidates.append(match)
+
+        # Capture identifiers that appear near "table"/"collection".
+        for pattern in (
+            r"\b(?:table|collection)\s+([a-z_][a-z0-9_]*)\b",
+            r"\b([a-z_][a-z0-9_]*)\s+(?:table|collection)\b",
+        ):
+            for match in re.findall(pattern, lowered):
+                candidates.append(match)
+
+        # Final fallback: keep meaningful keywords rather than returning nothing.
+        if not candidates:
+            stopwords = {
+                "a", "an", "and", "are", "does", "for", "from", "have", "how",
+                "in", "is", "me", "of", "show", "table", "the", "what", "which",
+                "with",
+            }
+            for token in re.findall(r"\b[a-z][a-z0-9_]*\b", lowered):
+                if token not in stopwords and len(token) > 2:
+                    candidates.append(token)
+
+        deduped: List[str] = []
+        seen = set()
+        for candidate in candidates:
+            if candidate not in seen:
+                seen.add(candidate)
+                deduped.append(candidate)
+        return deduped
 
     # ── 5.1 Database assignment ───────────────────────────────────────────────
 
