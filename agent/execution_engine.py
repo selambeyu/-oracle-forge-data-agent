@@ -3,14 +3,14 @@ Execution Engine.
 
 Responsibilities:
 1. Dialect translation (SQL / MongoDB aggregation / DuckDB analytical SQL)
-2. Query execution via MCPToolbox
+2. Query execution via MCP services
 3. Result merging (multi-database joins)
 4. Result validation (types, nulls, integrity)
 5. Format transformation (join key resolution)
 
 Routing:
   PostgreSQL / SQLite / MongoDB  → HTTP Google MCP Toolbox (team-dab-toolbox)
-  DuckDB                         → direct duckdb Python driver (via MCPToolbox)
+  DuckDB                         → HTTP custom DuckDB MCP service
 """
 
 from __future__ import annotations
@@ -110,7 +110,7 @@ class ExecutionEngine:
         """Map a sub-query to the MCP tool and its parameters.
 
         PostgreSQL / SQLite / MongoDB → HTTP toolbox (team-dab-toolbox).
-        DuckDB → direct driver via MCPToolbox._call_duckdb (uses DUCKDB_PATH env).
+        DuckDB → HTTP custom DuckDB MCP service.
         """
         # Derive actual DB type from db_configs; fall back to query_type
         db_type = self._db_configs.get(sq.database, {}).get("type", sq.query_type).lower()
@@ -122,11 +122,12 @@ class ExecutionEngine:
             return "run_query", {"query": sq.query}
 
         if db_type == "sqlite":
-            return "sqlite_query", {"query": sq.query}
+            sqlite_tool = self._db_configs.get(sq.database, {}).get("mcp_tool", "sqlite_query")
+            return sqlite_tool, {"sql": sq.query}
 
         if db_type == "duckdb":
-            # MCPToolbox._call_duckdb uses the DUCKDB_PATH env var
-            return "duckdb_query", {"query": sq.query}
+            duckdb_tool = self._db_configs.get(sq.database, {}).get("mcp_tool", "duckdb_query")
+            return duckdb_tool, {"sql": sq.query}
 
         if db_type == "mongodb":
             collection, pipeline = self._parse_mongo_query(sq.query)
