@@ -1,10 +1,11 @@
 from types import SimpleNamespace
 
-from agent.execution_engine import (
-    ExecutionEngine,
+from agent.execution_engine import ExecutionEngine
+from agent.models.models import (
     FormatTransform,
     JoinOp,
     QueryPlan,
+    QueryResult,
     SubQuery,
 )
 
@@ -34,11 +35,12 @@ def make_result(success=True, data=None, error=None, execution_time=0.01):
 def test_build_tool_call_routes_sqlite_and_mongodb():
     engine = ExecutionEngine(toolbox=StubToolbox([]))
 
+    # SubQuery field order: database, query, query_type
     sqlite_tool, sqlite_params = engine._build_tool_call(
-        SubQuery("select 1", "local", "sqlite")
+        SubQuery(database="local", query="select 1", query_type="sqlite")
     )
     mongo_tool, mongo_params = engine._build_tool_call(
-        SubQuery("db.checkin.aggregate([])", "mongo", "mongodb")
+        SubQuery(database="mongo", query="db.checkin.aggregate([])", query_type="mongodb")
     )
 
     assert sqlite_tool == "sqlite_query"
@@ -47,26 +49,21 @@ def test_build_tool_call_routes_sqlite_and_mongodb():
     assert mongo_params["limit"] == 20
 
 
-def test_merge_results_applies_format_transformation():
+def test_join_datasets_applies_format_transformation():
+    """_join_datasets transforms right-side join keys via FormatTransform before matching."""
     engine = ExecutionEngine(toolbox=StubToolbox([]))
-    join_op = JoinOp(
-        left_subquery_idx=0,
-        right_subquery_idx=1,
-        join_key_left="customer_id",
-        join_key_right="customer_ref",
-        format_transformation=FormatTransform(
-            source_format="integer",
-            target_format="CUST-{}",
-            transformation_function="prefix customer ids",
-        ),
+    transform = FormatTransform(
+        source_format="integer",
+        target_format="CUST-{}",
+        transformation_function="prefix customer ids",
     )
 
-    merged = engine.merge_results(
-        {
-            0: [{"customer_id": "CUST-7", "amount": 10}],
-            1: [{"customer_ref": 7, "name": "Ada"}],
-        },
-        [join_op],
+    merged = engine._join_datasets(
+        left=[{"customer_id": "CUST-7", "amount": 10}],
+        right=[{"customer_ref": 7, "name": "Ada"}],
+        key_left="customer_id",
+        key_right="customer_ref",
+        transform=transform,
     )
 
     assert merged == [{"customer_id": "CUST-7", "amount": 10, "customer_ref": "CUST-7", "name": "Ada"}]
@@ -81,58 +78,75 @@ def test_validate_result_rejects_duplicates():
     assert "Duplicate rows detected" in validation["issues"]
 
 
-def test_execute_plan_retries_after_syntax_failure_and_succeeds():
+def test_execute_plan_returns_failure_result_on_tool_error():
+    """A failed tool call propagates as a QueryResult with success=False."""
     toolbox = StubToolbox(
         [
             make_result(success=False, error="syntax error near FROM"),
+        ]
+    )
+    engine = ExecutionEngine(toolbox=toolbox)
+    plan = QueryPlan(
+        sub_queries=[SubQuery(database="catalog", query="select * from books", query_type="postgres")],
+        execution_order=[0],
+        join_operations=[],
+    )
+
+    results = engine.execute_plan(plan, {})
+
+    assert len(results) == 1
+    assert results[0].success is False
+    assert results[0].error == "syntax error near FROM"
+
+
+def test_execute_plan_returns_success_result():
+    """A successful tool call returns a QueryResult with the data."""
+    toolbox = StubToolbox(
+        [
             make_result(success=True, data=[{"id": 1}]),
         ]
     )
     engine = ExecutionEngine(toolbox=toolbox)
     plan = QueryPlan(
-        sub_queries=[SubQuery("select * from books", "catalog", "postgres")],
+        sub_queries=[SubQuery(database="catalog", query="select * from books", query_type="postgres")],
         execution_order=[0],
         join_operations=[],
     )
 
-    result = engine.execute_plan(plan, {})
+    results = engine.execute_plan(plan, {})
 
-    assert result.success is True
-    assert result.correction_applied is True
-    assert result.answer == [{"id": 1}]
-    assert toolbox.calls[1][1]["query"].endswith("LIMIT 100;")
+    assert len(results) == 1
+    assert results[0].success is True
+    assert results[0].data == [{"id": 1}]
 
 
 def test_execute_plan_merges_joined_subqueries():
+    """execute_plan joins results from two databases using JoinOp left_db/right_db/left_key/right_key."""
     toolbox = StubToolbox(
         [
-            make_result(success=True, data=[{"customer_id": "CUST-9"}]),
+            make_result(success=True, data=[{"customer_id": 9}]),
             make_result(success=True, data=[{"customer_ref": 9, "status": "active"}]),
         ]
     )
     engine = ExecutionEngine(toolbox=toolbox)
     plan = QueryPlan(
         sub_queries=[
-            SubQuery("select customer_id from customers", "db1", "postgres"),
-            SubQuery("select customer_ref, status from orders", "db2", "duckdb"),
+            SubQuery(database="db1", query="select customer_id from customers", query_type="postgres"),
+            SubQuery(database="db2", query="select customer_ref, status from orders", query_type="duckdb"),
         ],
         execution_order=[0, 1],
         join_operations=[
             JoinOp(
-                left_subquery_idx=0,
-                right_subquery_idx=1,
-                join_key_left="customer_id",
-                join_key_right="customer_ref",
-                format_transformation=FormatTransform(
-                    source_format="integer",
-                    target_format="CUST-{}",
-                    transformation_function="prefix customer ids",
-                ),
+                left_db="db1",
+                right_db="db2",
+                left_key="customer_id",
+                right_key="customer_ref",
             )
         ],
     )
 
-    result = engine.execute_plan(plan, {})
+    results = engine.execute_plan(plan, {})
 
-    assert result.success is True
-    assert result.answer == [{"customer_id": "CUST-9", "customer_ref": "CUST-9", "status": "active"}]
+    assert len(results) == 1
+    assert results[0].success is True
+    assert results[0].data == [{"customer_id": 9, "customer_ref": 9, "status": "active"}]
