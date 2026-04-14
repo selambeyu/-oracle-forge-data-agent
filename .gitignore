@@ -12,3 +12,7 @@ __pycache__/
 # Binary
 bin/toolbox
 
+.kiro/
+.hypothesis/
+CLAUDE.md
+ut/
