@@ -232,7 +232,6 @@ tools:
     kind: postgres-execute-sql
     source: postgres_main
     description: Execute read-only SQL against PostgreSQL using a generic query parameter.
-    statement: "{{query}}"
 
   list_tables:
     kind: postgres-sql

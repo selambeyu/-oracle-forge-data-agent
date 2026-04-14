@@ -85,14 +85,9 @@ tools:
     description: Find documents in the Yelp checkin collection.
 
   run_query:
-    kind: postgres-sql
+    kind: postgres-execute-sql
     source: postgres_main
     description: Execute an arbitrary SQL query against the PostgreSQL database.
-    parameters:
-      - name: query
-        type: string
-        description: SQL statement to execute
-    statement: "{{query}}"
 
   sqlite_bookreview_query:
     kind: sqlite-execute-sql

@@ -138,7 +138,8 @@ fi
 nohup env \
   DAB_DATASET_ROOT="${DAB_DATASET_ROOT}" \
   DUCKDB_MCP_PORT="${duckdb_port}" \
-  "${PYTHON_BIN}" "${ROOT_DIR}/agent/duckdb_mcp_server.py" \
+  PYTHONPATH="${ROOT_DIR}" \
+  "${PYTHON_BIN}" -m agent.duckdb_mcp_server \
   >"${DUCKDB_LOG_FILE}" 2>&1 &
 duckdb_pid=$!
 echo "${duckdb_pid}" > "${DUCKDB_MCP_PID_FILE}"
