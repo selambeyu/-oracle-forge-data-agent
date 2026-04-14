@@ -399,6 +399,10 @@ class OracleForgeAgent:
         """Return the evaluation harness for external callers (e.g. run_benchmark)."""
         return self._harness
 
+    def get_harness_session_id(self) -> str:
+        """Return the active evaluation harness session id for this agent run."""
+        return self._harness_session_id
+
 
 # ── CLI entry point ────────────────────────────────────────────────────────────
 
