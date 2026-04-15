@@ -379,7 +379,7 @@ class ExecutionEngine:
                 return static_tool, {}
             # Route to the per-database tool; fall back to run_query (bookreview default)
             pg_tool = self._PG_TOOL_MAP.get(sq.database, "run_query")
-            return pg_tool, {"query": sq.query}
+            return pg_tool, {"query": normalized_query}
 
         if db_type == "sqlite":
             sqlite_tool = self._db_configs.get(sq.database, {}).get("mcp_tool", "sqlite_query")
