@@ -460,6 +460,9 @@ class QueryRouter:
                 messages=[{"role": "user", "content": prompt}],
             )
             query_text = response.content[0].text.strip()
+            # Strip markdown code fences — LLM sometimes adds them despite the instruction
+            query_text = re.sub(r"^```[a-z]*\n?", "", query_text, flags=re.IGNORECASE)
+            query_text = re.sub(r"\n?```$", "", query_text).strip()
 
             sub_queries.append(
                 SubQuery(
