@@ -28,7 +28,7 @@ from agent.models.models import (
     Document,
     SchemaInfo,
 )
-from utils.schema_introspector import introspect_schema
+from utils.schema_introspector import introspect_schema, introspect_schema_via_mcp
 
 
 # Paths relative to repo root
@@ -70,13 +70,17 @@ _BUNDLE: Optional[ContextBundle] = None
 class ContextManager:
     """Builds and maintains the three-layer ContextBundle for the agent."""
 
-    def __init__(self, databases: Dict[str, dict]):
+    def __init__(self, databases: Dict[str, dict], toolbox=None):
         """
         Args:
             databases: mapping of db_name -> connection config dict.
-                       Keys: type, connection_string (or path for local DBs)
+                       Keys: type, mcp_tool (preferred) or connection_string/path
+            toolbox:   MCPToolbox instance.  When provided, schema introspection
+                       goes through MCP tool calls (architecture-compliant path).
+                       When None, falls back to direct DB connections (legacy).
         """
         self._databases = databases
+        self._toolbox = toolbox
         self._bundle: Optional[ContextBundle] = None
 
     # ── Public API ────────────────────────────────────────────────────────────
@@ -101,6 +105,33 @@ class ContextManager:
     def get_schema_for_databases(self, db_names: List[str]) -> Dict[str, SchemaInfo]:
         bundle = self.get_bundle()
         return {k: v for k, v in bundle.schema.items() if k in db_names}
+
+    def refresh_schema(self, db_names: List[str]) -> None:
+        """
+        Re-introspect schema for newly configured databases and update the
+        cached bundle in-place.
+
+        Called by OracleForgeAgent.answer() after _resolve_missing_db_configs()
+        discovers databases that weren't present at __init__ time (when
+        load_all_layers() first ran with an empty db_configs dict).
+        """
+        if self._bundle is None:
+            return
+        for db_name in db_names:
+            cfg = self._databases.get(db_name)
+            if not cfg:
+                continue
+            try:
+                if self._toolbox is not None:
+                    schema = introspect_schema_via_mcp(db_name, cfg, self._toolbox.call_tool)
+                else:
+                    schema = introspect_schema(db_name, cfg)
+                self._bundle.schema[db_name] = schema
+            except Exception as exc:
+                print(
+                    f"[ContextManager] Warning: could not refresh schema "
+                    f"for {db_name}: {exc}"
+                )
 
     def get_docs_for_question(self, question: str) -> List[Document]:
         """
@@ -201,8 +232,13 @@ class ContextManager:
         autoDream consolidation — call at session end (memory_system.md DreamTask pattern).
 
         Rules from memory_system.md and self_correcting_execution.md:
-          Keep: recurring failures (appeared > 1 time), high-impact join fixes
+          Keep: recurring failures (appeared > 1 time), high-impact join/cast fixes
           Remove: exact duplicates (same query + failure + fix), one-off errors
+
+        Two-pass pruning:
+          Pass 1 — deduplicate exact (query, failure_cause, correction) triples.
+          Pass 2 — frequency pruning: drop entries where the (query, failure_cause)
+                   pair appeared only once and is not a high-impact join/cast fix.
 
         A corrections log that only grows becomes noise. Discipline is removal.
         """
@@ -213,17 +249,40 @@ class ContextManager:
         if not entries:
             return
 
-        # Deduplicate: identify (query, failure_cause, correction) triples
+        original_count = len(entries)
+
+        # Pass 1 — count occurrences per (query, failure_cause) BEFORE dedup
+        # so we know whether a pattern is recurring.
+        freq: Counter = Counter()
+        for e in entries:
+            freq_key = (e.query.strip().lower(), e.failure_cause.strip().lower())
+            freq[freq_key] += 1
+
+        # Pass 1 — deduplicate exact triples; last occurrence wins (most recent outcome)
         seen: dict = {}
         for e in entries:
             key = (e.query.strip(), e.failure_cause.strip(), e.correction.strip())
-            seen[key] = e  # last occurrence wins (most recent outcome)
+            seen[key] = e
 
-        # Keep recurring failures and high-impact join fixes even if only seen once
-        kept = list(seen.values())
+        # Pass 2 — frequency-based pruning.
+        # Retain entry if it is recurring (same query+failure seen > 1 time)
+        # OR if it is a high-impact fix worth keeping regardless of frequency.
+        _HIGH_IMPACT_KEYWORDS = {
+            "join", "cast", "normalize", "customer_id", "user_id", "order_id",
+        }
+        kept = []
+        for e in seen.values():
+            freq_key = (e.query.strip().lower(), e.failure_cause.strip().lower())
+            is_recurring = freq[freq_key] > 1
+            is_high_impact = any(kw in e.correction.lower() for kw in _HIGH_IMPACT_KEYWORDS)
+            if is_recurring or is_high_impact:
+                kept.append(e)
 
-        if len(kept) == len(entries):
+        if len(kept) == original_count:
             return  # nothing to prune
+
+        n_dupes = original_count - len(seen)
+        n_oneoffs = len(seen) - len(kept)
 
         # Rewrite corrections log preserving the header comment block
         header = _read_log_header()
@@ -243,7 +302,10 @@ class ContextManager:
         if self._bundle is not None:
             self._bundle.corrections = kept
 
-        print(f"[ContextManager] autoDream: pruned {len(entries) - len(kept)} duplicate entries.")
+        print(
+            f"[ContextManager] autoDream: pruned {original_count - len(kept)} entries "
+            f"({n_dupes} exact duplicates, {n_oneoffs} one-offs)."
+        )
 
     # ── Layer loaders ─────────────────────────────────────────────────────────
 
@@ -251,7 +313,12 @@ class ContextManager:
         schema: Dict[str, SchemaInfo] = {}
         for db_name, config in self._databases.items():
             try:
-                schema[db_name] = introspect_schema(db_name, config)
+                if self._toolbox is not None:
+                    schema[db_name] = introspect_schema_via_mcp(
+                        db_name, config, self._toolbox.call_tool
+                    )
+                else:
+                    schema[db_name] = introspect_schema(db_name, config)
             except Exception as exc:
                 # Non-fatal: agent can still work with the databases it can reach
                 print(f"[ContextManager] Warning: could not introspect {db_name}: {exc}")
@@ -259,7 +326,7 @@ class ContextManager:
 
     def _load_layer2(self) -> List[Document]:
         """
-        Load Layer 2 institutional knowledge in two tiers:
+        Load Layer 2 institutional knowledge — Tier A only at session start.
 
         Tier A — always-load behavioral docs (define HOW the agent operates):
           agent/AGENT.md
@@ -268,12 +335,9 @@ class ContextManager:
           kb/architecture/tool_scoping.md       (DB tool routing, silent-failure rules)
           kb/architecture/self_correcting_execution.md  (6-step loop, corrections format)
 
-        Tier B — domain knowledge (pre-loaded for query routing context):
-          kb/domain/*.md    (schemas, business terms, join keys)
-          kb/evaluation/*.md
-
-        Per memory_system.md: for large sessions, replace Tier B pre-loading with
-        get_docs_for_question() on-demand injection to keep context window efficient.
+        Tier B — domain + evaluation knowledge is NOT pre-loaded here.
+        Injected at question time via get_docs_for_question() per the
+        memory_system.md on-demand loading pattern (context window efficiency).
         """
         docs: List[Document] = []
 
@@ -283,19 +347,17 @@ class ContextManager:
             *[_KB_ARCHITECTURE / name for name in _ARCHITECTURE_BEHAVIORAL],
         ]
 
-        # Tier B: domain + evaluation knowledge
-        tier_b = [
-            *sorted(_KB_DOMAIN.glob("*.md")),
-            *sorted(_KB_EVALUATION.glob("*.md")),
-        ]
-
-        for path in tier_a + tier_b:
-            if path.exists():
-                try:
-                    source = str(path.relative_to(_REPO_ROOT))
-                except ValueError:
-                    source = str(path)
-                docs.append(Document(source=source, content=path.read_text(encoding="utf-8")))
+        for path in tier_a:
+            if not path.exists():
+                continue
+            content = path.read_text(encoding="utf-8").strip()
+            if not content:
+                continue  # skip empty files rather than wasting a context slot
+            try:
+                source = str(path.relative_to(_REPO_ROOT))
+            except ValueError:
+                source = str(path)
+            docs.append(Document(source=source, content=content))
         return docs
 
     def _load_layer3(self) -> List[CorrectionEntry]:
