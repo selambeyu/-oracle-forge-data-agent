@@ -61,11 +61,13 @@ class QueryEvent:
     """Immutable record of one query attempt."""
 
     event_id: str
+    query_id: str
     timestamp: str
     session_id: str
     query_text: str
     available_databases: List[str]
     tool_call_ids: List[str]
+    tool_call_trace: List[Dict[str, Any]]
     answer: Any
     expected_answer: Any
     correct: bool
@@ -160,19 +162,23 @@ class EvaluationHarness:
         answer: Any,
         expected: Any,
         tool_call_ids: List[str],
+        query_id: Optional[str] = None,
         available_databases: Optional[List[str]] = None,
         confidence: float = 0.9,
         correction_applied: bool = False,
         execution_time: float = 0.0,
     ) -> QueryEvent:
         """Record a query outcome and append it to the trace log."""
+        resolved_query_id = query_id or f"{session_id}:{len(self._query_events) + 1}"
         event = QueryEvent(
             event_id=str(uuid.uuid4()),
+            query_id=resolved_query_id,
             timestamp=datetime.now(timezone.utc).isoformat(),
             session_id=session_id,
             query_text=query,
             available_databases=available_databases or [],
             tool_call_ids=tool_call_ids,
+            tool_call_trace=self._resolve_tool_call_trace(tool_call_ids),
             answer=answer,
             expected_answer=expected,
             correct=self._score_answer(answer, expected),
@@ -220,6 +226,7 @@ class EvaluationHarness:
                     answer=response.get("answer"),
                     expected=query_spec.get("expected_answer"),
                     tool_call_ids=response.get("tool_call_ids", []),
+                    query_id=query_spec.get("id"),
                     available_databases=query_spec.get("available_databases", []),
                     confidence=response.get("confidence", 0.9),
                     correction_applied=response.get("correction_applied", False),
@@ -250,6 +257,7 @@ class EvaluationHarness:
             "session_id": session,
             "total_queries": len(queries),
             "score_entry": asdict(score_entry),
+            "per_query_records": [event.to_dict() for event in self._query_events],
         }
 
     def log_score(
@@ -348,6 +356,13 @@ class EvaluationHarness:
                     events.append({"parse_error": stripped})
         return events
 
+    def _resolve_tool_call_trace(self, tool_call_ids: List[str]) -> List[Dict[str, Any]]:
+        """Resolve referenced tool-call events for per-query traceability."""
+        if not tool_call_ids:
+            return []
+        by_id = {event.event_id: event.to_dict() for event in self._tool_call_events}
+        return [by_id[event_id] for event_id in tool_call_ids if event_id in by_id]
+
     def pretty_print_trace(self, events: Optional[List[Dict[str, Any]]] = None) -> str:
         """Render a human-readable trace report."""
         trace_events = events or self.parse_trace_log()
@@ -378,11 +393,14 @@ class EvaluationHarness:
             bucket = results_by_query.setdefault(query_id, [])
             bucket.append(
                 {
+                    "query_id": event.query_id,
                     "trial_number": len(bucket) + 1,
                     "answer": event.answer,
                     "correct": event.correct,
                     "execution_time": event.execution_time,
                     "tool_calls": len(event.tool_call_ids),
+                    "tool_call_ids": event.tool_call_ids,
+                    "tool_call_trace": event.tool_call_trace,
                     "correction_applied": event.correction_applied,
                 }
             )

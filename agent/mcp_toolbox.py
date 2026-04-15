@@ -17,6 +17,8 @@ import urllib.request
 from dataclasses import dataclass
 from typing import Any, Dict, List, Optional
 
+from pymongo import MongoClient
+
 try:
     from dotenv import load_dotenv
 except ImportError:  # pragma: no cover - optional dependency
@@ -28,6 +30,8 @@ load_dotenv()
 
 TOOLBOX_URL = os.getenv("MCP_TOOLBOX_URL", os.getenv("TOOLBOX_URL", "http://localhost:5000"))
 DUCKDB_MCP_URL = os.getenv("DUCKDB_MCP_URL", "http://127.0.0.1:8001")
+MONGO_URI = os.getenv("MONGO_URI", "mongodb://team-dab-mongo:27017")
+MONGO_DB_NAME = os.getenv("MONGO_DB_NAME", "yelp_db")
 
 HTTP_SOURCE_TYPES = {"postgres", "mongodb"}
 DUCKDB_SOURCE_TYPES = {"duckdb"}
@@ -100,7 +104,9 @@ class MCPToolbox:
         source_type = self._resolve_source_type(tool_name)
         start = time.time()
 
-        if source_type in DUCKDB_SOURCE_TYPES:
+        if source_type == "mongodb":
+            result = self._call_mongodb_direct(tool_name, parameters)
+        elif source_type in DUCKDB_SOURCE_TYPES:
             result = self._call_duckdb_http(tool_name, parameters)
         else:
             result = self._call_http(tool_name, parameters)
@@ -268,6 +274,58 @@ class MCPToolbox:
             return ToolResult(success=False, data=None, error=f"HTTP {exc.code}: {body}")
         except Exception as exc:
             return ToolResult(success=False, data=None, error=str(exc))
+
+    def _call_mongodb_direct(self, tool_name: str, parameters: Dict[str, Any]) -> ToolResult:
+        """
+        Execute MongoDB-backed Yelp tools directly.
+
+        The HTTP toolbox `mongodb-find` path currently ignores dynamic filters and
+        limits in this environment, so Mongo reads are handled here to preserve
+        the expected tool contract.
+        """
+        collection_name = "checkin" if tool_name == "find_yelp_checkins" else "business"
+
+        filter_payload = parameters.get("filterPayload", "{}")
+        if isinstance(filter_payload, str):
+            try:
+                query_filter = json.loads(filter_payload or "{}")
+            except json.JSONDecodeError as exc:
+                return ToolResult(success=False, data=None, error=f"Invalid Mongo filterPayload: {exc}")
+        elif isinstance(filter_payload, dict):
+            query_filter = filter_payload
+        else:
+            return ToolResult(success=False, data=None, error="Mongo filterPayload must be a JSON object or string")
+
+        limit = parameters.get("limit", 20)
+        try:
+            limit_value = max(1, int(limit))
+        except (TypeError, ValueError):
+            limit_value = 20
+
+        try:
+            with MongoClient(MONGO_URI, serverSelectionTimeoutMS=5000) as client:
+                collection = client[MONGO_DB_NAME][collection_name]
+                documents = list(collection.find(query_filter).limit(limit_value))
+            return ToolResult(success=True, data=[self._sanitize_mongo_document(doc) for doc in documents])
+        except Exception as exc:
+            return ToolResult(success=False, data=None, error=str(exc))
+
+    @staticmethod
+    def _sanitize_mongo_document(value: Any) -> Any:
+        if isinstance(value, dict):
+            return {key: MCPToolbox._sanitize_mongo_document(val) for key, val in value.items()}
+        if isinstance(value, list):
+            return [MCPToolbox._sanitize_mongo_document(item) for item in value]
+        if isinstance(value, (str, int, float, bool)) or value is None:
+            return value
+        if hasattr(value, "isoformat"):
+            try:
+                return value.isoformat()
+            except Exception:
+                pass
+        if value.__class__.__name__ == "ObjectId":
+            return str(value)
+        return str(value)
 
     def _resolve_source_type(self, tool_name: str) -> str:
         """Determine source type for a tool name."""

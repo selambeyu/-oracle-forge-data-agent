@@ -15,7 +15,8 @@ from __future__ import annotations
 
 import re
 import time
-from typing import Any, Dict, List, Optional
+from typing import Any, Dict, List, Optional, Tuple
+import json
 
 from agent.mcp_client import MCPClient
 from agent.sandbox_client import SandboxClient
@@ -268,6 +269,7 @@ class ExecutionEngine:
         for idx in plan.execution_order:
             sq = plan.sub_queries[idx]
             try:
+                mongo_local_plan = self._maybe_prepare_local_mongo_aggregation(sq)
                 tool_name, params = self._build_tool_call(sq)
                 tool_result = self.toolbox.call_tool(tool_name, params)
 
@@ -296,6 +298,8 @@ class ExecutionEngine:
                             )
                         )
                     else:
+                        if mongo_local_plan is not None:
+                            data = self._apply_local_mongo_aggregation(data, mongo_local_plan)
                         rows = len(data) if isinstance(data, list) else 1
                         results.append(
                             QueryResult(
@@ -392,7 +396,8 @@ class ExecutionEngine:
         if db_type == "mongodb":
             collection, pipeline = self._parse_mongo_query(normalized_query)
             tool_name = "find_yelp_checkins" if collection == "checkin" else "find_yelp_businesses"
-            return tool_name, {"filterPayload": pipeline, "limit": 20}
+            request_payload = self._build_mongo_find_payload(pipeline)
+            return tool_name, request_payload
 
         return "run_query", {"query": normalized_query}
 
@@ -443,9 +448,6 @@ class ExecutionEngine:
         implementation always returned ``"{}"`` (empty filter), so every MongoDB
         call returned unfiltered data.  We now pass the actual query through.
         """
-        import json
-        import re
-
         q_lower = query.lower()
 
         # Detect the target collection from keywords.  Prefer explicit names;
@@ -479,6 +481,114 @@ class ExecutionEngine:
         # pre-existing behaviour — better than crashing, but the LLM output
         # should almost always be parseable JSON.
         return collection, "{}"
+
+    @staticmethod
+    def _build_mongo_find_payload(pipeline: str) -> Dict[str, Any]:
+        """
+        Convert a Mongo query string into parameters for the toolbox `mongodb-find` tools.
+
+        The toolbox only exposes `find` operations today, so if the query is an
+        aggregation pipeline we extract the leading `$match` filter and fetch a
+        larger document set for client-side post-processing.
+        """
+        default_payload: Dict[str, Any] = {"filterPayload": "{}", "limit": 20}
+        try:
+            parsed = json.loads(pipeline)
+        except (json.JSONDecodeError, TypeError, ValueError):
+            return default_payload
+
+        if isinstance(parsed, dict):
+            return {"filterPayload": json.dumps(parsed), "limit": 5000}
+
+        if isinstance(parsed, list):
+            for stage in parsed:
+                if isinstance(stage, dict) and "$match" in stage and isinstance(stage["$match"], dict):
+                    return {"filterPayload": json.dumps(stage["$match"]), "limit": 5000}
+            return default_payload
+
+        return default_payload
+
+    def _maybe_prepare_local_mongo_aggregation(self, sq: SubQuery) -> Optional[Dict[str, Any]]:
+        db_type = self._db_configs.get(sq.database, {}).get("type", sq.query_type).lower()
+        if db_type != "mongodb":
+            return None
+
+        normalized_query = self._normalize_query_text(sq.query)
+        _, pipeline = self._parse_mongo_query(normalized_query)
+        try:
+            parsed = json.loads(pipeline)
+        except (json.JSONDecodeError, TypeError, ValueError):
+            return None
+
+        if not isinstance(parsed, list):
+            return None
+
+        group_stage = None
+        for stage in parsed:
+            if isinstance(stage, dict) and "$group" in stage and isinstance(stage["$group"], dict):
+                group_stage = stage["$group"]
+                break
+        if group_stage is None:
+            return None
+
+        aggregate_spec = self._extract_supported_group_aggregation(group_stage)
+        if aggregate_spec is None:
+            return None
+
+        return {"aggregate": aggregate_spec}
+
+    @staticmethod
+    def _extract_supported_group_aggregation(group_stage: Dict[str, Any]) -> Optional[Dict[str, str]]:
+        """
+        Support a narrow subset of Mongo aggregations locally.
+
+        Today this is enough to unblock the Yelp baseline:
+        - `{$group: {"_id": null, "average_rating": {"$avg": "$stars"}}}`
+        """
+        if group_stage.get("_id", object()) is not None:
+            return None
+
+        aggregate_fields = [(key, value) for key, value in group_stage.items() if key != "_id"]
+        if len(aggregate_fields) != 1:
+            return None
+
+        output_field, expression = aggregate_fields[0]
+        if not isinstance(expression, dict) or len(expression) != 1:
+            return None
+
+        operator, operand = next(iter(expression.items()))
+        if operator not in {"$avg"}:
+            return None
+        if not isinstance(operand, str) or not operand.startswith("$"):
+            return None
+
+        return {
+            "operator": operator,
+            "source_field": operand[1:],
+            "output_field": output_field,
+        }
+
+    @staticmethod
+    def _apply_local_mongo_aggregation(data: Any, local_plan: Dict[str, Any]) -> List[Dict[str, Any]]:
+        rows = data if isinstance(data, list) else []
+        aggregate = local_plan.get("aggregate") or {}
+        operator = aggregate.get("operator")
+        source_field = aggregate.get("source_field")
+        output_field = aggregate.get("output_field")
+
+        if operator != "$avg" or not source_field or not output_field:
+            return rows
+
+        numeric_values: List[float] = []
+        for row in rows:
+            if not isinstance(row, dict):
+                continue
+            value = row.get(source_field)
+            if isinstance(value, (int, float)):
+                numeric_values.append(float(value))
+
+        average = sum(numeric_values) / len(numeric_values) if numeric_values else None
+        return [{output_field: average}]
 
     def _merge_by_db(
         self,

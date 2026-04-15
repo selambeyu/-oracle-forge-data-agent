@@ -37,6 +37,7 @@ def test_trace_tool_call_and_record_query_append_jsonl(tmp_path):
         answer="1",
         expected="1",
         tool_call_ids=[tool_call_id],
+        query_id="q-1",
         available_databases=["postgres"],
         execution_time=0.125,
     )
@@ -45,8 +46,25 @@ def test_trace_tool_call_and_record_query_append_jsonl(tmp_path):
 
     assert len(parsed) == 2
     assert parsed[0]["tool_name"] == "run_query"
+    assert parsed[1]["query_id"] == "q-1"
     assert parsed[1]["query_text"] == "How many rows?"
+    assert parsed[1]["tool_call_trace"][0]["event_id"] == tool_call_id
     assert query_event.correct is True
+
+
+def test_record_query_outcome_generates_query_id_when_missing(tmp_path):
+    harness = build_harness(tmp_path)
+    session = harness.start_session()
+
+    query_event = harness.record_query_outcome(
+        session_id=session,
+        query="How many rows?",
+        answer="1",
+        expected="1",
+        tool_call_ids=[],
+    )
+
+    assert query_event.query_id.startswith(f"{session}:")
 
 
 def test_calculate_pass_at_1_excludes_corrected_queries(tmp_path):
@@ -95,6 +113,7 @@ def test_run_benchmark_records_results_and_score(tmp_path):
     score_log = json.loads(harness.score_log_path.read_text(encoding="utf-8"))
     assert result["pass_at_1"] == 50.0
     assert result["total_queries"] == 2
+    assert result["per_query_records"][0]["query_id"].startswith(result["session_id"])
     assert score_log[0]["corrections_applied"] == 1
 
 
@@ -129,4 +148,6 @@ def test_export_dab_results_writes_submission_file(tmp_path):
 
     assert payload["team_name"] == "Team PaLM"
     assert payload["pass_at_1"] == 100.0
+    assert payload["results"][0]["trials"][0]["query_id"].startswith(session)
     assert payload["results"][0]["trials"][0]["tool_calls"] == 1
+    assert payload["results"][0]["trials"][0]["tool_call_ids"] == ["tool-1"]

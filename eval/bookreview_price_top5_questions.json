@@ -1,0 +1,15 @@
+[
+  {
+    "id": "bookreview_top5_price",
+    "question": "What are the five books that has the highest price.",
+    "available_databases": ["books_database"],
+    "schema_info": {},
+    "expected_answer": [
+      "Land Surveying Law: With Study Guide Questions",
+      "Kirsten: An American Girl : 1854 (The American Girls Collection/Boxed Set)",
+      "Appropriate: The Houses Of Joseph Esherick (Environmental Design Archives at the University of California, Berkeley Series) (Environmental Design Archives ... University of California, Berkeley Series",
+      "Capitalism, Hegemony and Violence in the Age of Drones",
+      "Marigold garden;: Pictures and rhymes,"
+    ]
+  }
+]

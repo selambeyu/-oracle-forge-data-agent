@@ -23,3 +23,6 @@ results/
 memory/
 agent/*.md
 query/
+
+agent_server.log
+agent_server.pid

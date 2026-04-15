@@ -49,6 +49,57 @@ def test_build_tool_call_routes_sqlite_and_mongodb():
     assert mongo_params["limit"] == 20
 
 
+def test_build_tool_call_extracts_match_from_mongo_aggregation_pipeline():
+    engine = ExecutionEngine(toolbox=StubToolbox([]))
+
+    mongo_tool, mongo_params = engine._build_tool_call(
+        SubQuery(
+            database="mongo",
+            query='[{"$match":{"state":"Indiana","city":"Indianapolis"}},{"$group":{"_id":null,"average_rating":{"$avg":"$stars"}}}]',
+            query_type="mongodb",
+        )
+    )
+
+    assert mongo_tool == "find_yelp_businesses"
+    assert mongo_params == {
+        "filterPayload": '{"state": "Indiana", "city": "Indianapolis"}',
+        "limit": 5000,
+    }
+
+
+def test_legacy_execute_plan_applies_local_mongo_average_aggregation():
+    toolbox = StubToolbox(
+        [
+            make_result(
+                success=True,
+                data=[
+                    {"business_id": "b1", "stars": 4.0},
+                    {"business_id": "b2", "stars": 2.0},
+                    {"business_id": "b3", "stars": 3.0},
+                ],
+            )
+        ]
+    )
+    engine = ExecutionEngine(toolbox=toolbox)
+    plan = QueryPlan(
+        sub_queries=[
+            SubQuery(
+                database="mongo",
+                query='[{"$match":{"state":"Indiana","city":"Indianapolis"}},{"$group":{"_id":null,"average_rating":{"$avg":"$stars"}}}]',
+                query_type="mongodb",
+            )
+        ],
+        execution_order=[0],
+        join_operations=[],
+    )
+
+    results = engine.execute_plan(plan, {})
+
+    assert len(results) == 1
+    assert results[0].success is True
+    assert results[0].data == [{"average_rating": 3.0}]
+
+
 def test_build_tool_call_strips_markdown_sql_fences():
     engine = ExecutionEngine(toolbox=StubToolbox([]))
 
