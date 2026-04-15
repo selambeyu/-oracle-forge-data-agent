@@ -95,13 +95,20 @@ cp .env.example .env
 Set at least these values:
 
 ```env
-OPENROUTER_API_KEY=your-openrouter-key
-OPENROUTER_MODEL=google/gemini-2.5-flash-lite
 TOOLBOX_URL=http://127.0.0.1:5000
 DAB_DATASET_ROOT=/home/<your-user>/DataAgentBench
 DUCKDB_MCP_URL=http://127.0.0.1:8001
 SANDBOX_URL=https://.....dev
 ```
+
+Optional for live natural-language runs that call the external LLM backend:
+
+```env
+OPENROUTER_API_KEY=your-openrouter-key
+OPENROUTER_MODEL=google/gemini-2.5-flash-lite
+```
+
+The local test suite does not require `OPENROUTER_API_KEY`.
 
 If you are using the shared Dockerized Postgres and MongoDB containers, the defaults in [.env.example](.env.example) are already aligned with this repo:
 
