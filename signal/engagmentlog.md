@@ -479,13 +479,12 @@ technical approach:**
 | Apr 9–10 | X | Thread 3 — Mid-Build Update | https://x.com/Kidus5T99409/status/2042344151518232998 | 17 views |
 | Apr 9 | X | Reply to @fabiolauria92 | https://x.com/Kidus5T99409/status/2042344151518232998 | 14 views |
 | Apr 9 | X | Reply to @rivestack | https://x.com/Kidus5T99409/status/2042897418534924327 | 7 views |
-| Apr 10 | Reddit | Post + replies — schema loading | https://www.reddit.com/r/learnmachinelearning/comments/1shx8ag/ | 867 views |
+| Apr 10 | Reddit | Post + replies — schema loading | https://www.reddit.com/r/learnmachinelearning/comments/1shx8ag/ | 1300 views |
 | Apr 10 | Medium | Article 1 — Kidus & Mistire | https://medium.com/@ktewodros41/were-building-a-data-agent-that-competes-on-a-uc-berkeley-benchmark-937d6370eee4 | TBC |
 | Apr 11 | X | Thread 4 — Karpathy KB Method | https://x.com/Kidus5T99409/status/2043065456173387782 | 49 views |
-| Apr 13 | X | Thread 5 — a16z Context Layer | [paste URL] | 17 views |
-| Apr 13 | Reddit | Post — human refinement a16z | https://www.reddit.com/r/learnmachinelearning/comments/1skrzsh/ | 290 views |
+| Apr 13 | X | Thread 5 — a16z Context Layer | https://x.com/Kidus5T99409/status/2043837626114027593?s=20 | 32 views |
+| Apr 13 | Reddit | Post — human refinement a16z | https://www.reddit.com/r/learnmachinelearning/comments/1skrzsh/ | 383 views |
 | Apr 13 | Medium | Article 2 — Mistire Join Key Problem | https://medium.com/@mistiredan/the-join-key-problem-why-the-same-customer-is-a-different-person-in-every-database-10985194c39c | TBC |
-| Apr 14 | X | Thread 6 — Benchmark | TBC | TBC |
 | Apr 17 | X | Thread 7 — Results | TBC | TBC |
 | Apr 18 | X | DAB PR Announcement | TBC | TBC |
 
