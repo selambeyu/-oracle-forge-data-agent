@@ -80,8 +80,11 @@ class SandboxClient:
 
         TODO: route this to a dedicated sandbox validation endpoint.
         """
-        if self.backend is not None and hasattr(self.backend, "validate"):
-            return self._normalize_response(self.backend.validate(request))
+        if self.backend is not None:
+            if hasattr(self.backend, "validate"):
+                return self._normalize_response(self.backend.validate(request))
+            if hasattr(self.backend, "execute"):
+                return self._normalize_response(self.backend.execute(request))
 
         if not self.base_url:
             return SandboxResult(

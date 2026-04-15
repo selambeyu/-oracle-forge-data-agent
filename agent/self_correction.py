@@ -86,13 +86,39 @@ class SelfCorrectionLoop:
 
     def __init__(
         self,
-        execution_engine: "ExecutionEngine",
-        context_manager: "ContextManager",
+        execution_engine: Optional["ExecutionEngine"] = None,
+        context_manager: Optional["ContextManager"] = None,
         client: Optional[LLMClient] = None,
     ):
         self._engine = execution_engine
         self._ctx = context_manager
         self._client = client or LLMClient()
+
+    def handle_failure(
+        self,
+        plan: Any,
+        failure: Any,
+    ) -> Any:
+        """
+        Typed-runtime hook.
+
+        The typed execution engine uses this narrower contract; the main
+        legacy correction flow still goes through execute_with_correction().
+        """
+        from agent.types import CorrectionDecision
+
+        retry_budget = getattr(plan, "max_retries", 1)
+        if getattr(failure, "attempt", retry_budget) >= retry_budget:
+            return CorrectionDecision(
+                retryable=False,
+                reason="Retry budget exhausted",
+                updated_plan=None,
+            )
+        return CorrectionDecision(
+            retryable=True,
+            reason="retry after detected execution failure",
+            updated_plan=plan,
+        )
 
     # ── Public API ────────────────────────────────────────────────────────────
 
