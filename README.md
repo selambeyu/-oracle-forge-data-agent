@@ -55,13 +55,56 @@ The current system supports:
 
 ## Live Agent / Shared Server
 
-Add the shared server URL or access instructions here before submission.
+The agent is running on the shared AWS EC2 server and accessible publicly.
 
-- Shared agent URL: `TBD - replace with team server URL`
-- Shared toolbox UI: `TBD - replace with team server URL if exposed`
-- Shared DuckDB MCP UI: `TBD - replace with team server URL if exposed`
-- Deployed sandbox used during development: `https://sandbox.oracleforget.workers.dev`
+| Endpoint | URL |
+|---|---|
+| **Agent landing page** | http://184.73.53.81/ |
+| **Health check** | http://184.73.53.81/health |
+| **Query API** | `POST http://184.73.53.81/answer` |
+| MCP Toolbox UI | http://184.73.53.81:5000/ui *(from server; needs VPN or SSH tunnel externally)* |
 
+### Try the live agent
+
+```bash
+# Health check
+curl http://184.73.53.81/health
+
+# Ask a question
+curl -s http://184.73.53.81/answer \
+  -H "Content-Type: application/json" \
+  -d '{"question": "How many businesses are in the yelp dataset?", "dataset": "yelp"}' \
+  | python3 -m json.tool
+```
+
+Request body fields:
+
+| Field | Required | Description |
+|---|---|---|
+| `question` | yes | Natural language question |
+| `dataset` | no | DAB dataset name (default: `yelp`) |
+
+Available datasets: `yelp`, `bookreview`, `googlelocal`, `agnews`, `crmarenapro`, `stockindex`, `PANCANCER_ATLAS`, `DEPS_DEV_V1`, `GITHUB_REPOS`
+
+### Restart the agent server (after a reboot)
+
+From the repo root on the shared server:
+
+```bash
+./start_agent_server.sh          # start or restart
+./start_agent_server.sh status   # check running status
+./start_agent_server.sh stop     # stop both processes
+```
+
+This script starts the Python agent on port 8080 and an nginx Docker container
+that proxies port 80 → 8080.
+
+### SSH into the shared server
+
+```bash
+ssh ubuntu@184.73.53.81
+cd /home/yosef/data-agent-challenge
+```
 
 ## Fresh Machine Setup
 
@@ -190,30 +233,27 @@ curl -sS "$SANDBOX_URL/execute" \
 
 ### 7. Run the agent
 
-Single question:
+Single question via the CLI:
 
 ```bash
-PYTHONPATH=. uv run python scripts/run_bookreview_query.py \
-  --question "what columns does the books_info table have" \
-  --eval-dir my_query_run
+echo '"How many businesses are in the yelp dataset?"' > /tmp/q.json
+uv run python run_agent.py \
+  --dataset yelp \
+  --query /tmp/q.json \
+  --iterations 1 \
+  --root_name smoke_test
 ```
 
-BookReview benchmark preset:
+Expected output ends with `Final answer :` and a `Confidence :` line.
+Results are written to `results/yelp/smoke_test_iter_1.json`.
+
+Or run via the HTTP API (once `start_agent_server.sh` is running):
 
 ```bash
-PYTHONPATH=. uv run python scripts/run_bookreview_query.py \
-  --bookreview-benchmark \
-  --eval-dir query_bookreview_benchmark
-```
-
-The generated run artifacts are stored in DAB-style folders such as:
-
-```text
-my_query_run/
-└─ query1/
-   ├─ query.json
-   ├─ validate.py
-   └─ run_result.json
+curl -s http://127.0.0.1:8080/answer \
+  -H "Content-Type: application/json" \
+  -d '{"question": "How many businesses are there?", "dataset": "yelp"}' \
+  | python3 -m json.tool
 ```
 
 ## How We Know We Are Using MCP
