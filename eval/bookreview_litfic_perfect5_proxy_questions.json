@@ -1,0 +1,18 @@
+[
+  {
+    "id": "bookreview_litfic_perfect5_proxy",
+    "question": "Which English-language books in the 'Literature & Fiction' category have a perfect average rating of 5.0? Return all matching books.",
+    "available_databases": ["books_database"],
+    "schema_info": {},
+    "expected_answer": [
+      {
+        "title": "Outage",
+        "subtitle": "Paperback – June 25, 2014",
+        "author": "T.W. Piperbrook",
+        "rating_number": 5,
+        "categories": "[\"Books\", \"Literature & Fiction\", \"Genre Fiction\"]",
+        "book_id": "bookid_92"
+      }
+    ]
+  }
+]
