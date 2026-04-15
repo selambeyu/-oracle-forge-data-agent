@@ -28,7 +28,7 @@ from agent.models.models import (
     Document,
     SchemaInfo,
 )
-from utils.schema_introspector import introspect_schema, introspect_schema_via_mcp
+from utils.schema_introspector import introspect_schema
 
 
 # Paths relative to repo root
@@ -123,9 +123,7 @@ class ContextManager:
                 continue
             try:
                 if self._toolbox is not None:
-                    schema = introspect_schema_via_mcp(db_name, cfg, self._toolbox.call_tool)
-                else:
-                    schema = introspect_schema(db_name, cfg)
+                    schema = introspect_schema(db_name, cfg, self._toolbox.call_tool)
                 self._bundle.schema[db_name] = schema
             except Exception as exc:
                 print(
@@ -314,11 +312,9 @@ class ContextManager:
         for db_name, config in self._databases.items():
             try:
                 if self._toolbox is not None:
-                    schema[db_name] = introspect_schema_via_mcp(
+                    schema[db_name] = introspect_schema(
                         db_name, config, self._toolbox.call_tool
                     )
-                else:
-                    schema[db_name] = introspect_schema(db_name, config)
             except Exception as exc:
                 # Non-fatal: agent can still work with the databases it can reach
                 print(f"[ContextManager] Warning: could not introspect {db_name}: {exc}")
