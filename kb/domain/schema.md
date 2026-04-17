@@ -8,7 +8,7 @@ Each dataset section includes: databases, DB engine, tables/collections, all fie
 
 ## 1. yelp
 
-### businessinfo_database — MongoDB
+### yelp_db — MongoDB
 
 #### Collection: `business`
 | Field | Type | Notes |
@@ -80,11 +80,11 @@ Each dataset section includes: databases, DB engine, tables/collections, all fie
 | time | str | Timestamp string |
 | rating | int | 1–5 |
 | text | str | Review text |
-| gmap_id | str | Join key — exact match to business_database |
+| gmap_id | str | Join key — exact match to googlelocal_db |
 
 ---
 
-### business_database — PostgreSQL
+### googlelocal_db — PostgreSQL
 
 #### Table: `business_description`
 | Field | Type | Notes |
@@ -323,7 +323,7 @@ Query `SHOW TABLES` to enumerate.
 
 ---
 
-### support — PostgreSQL
+### crm_support — PostgreSQL
 
 #### Table: `Case`
 | Field | Type | Notes |
@@ -443,7 +443,7 @@ Query `SHOW TABLES` to enumerate.
 
 ## 7. agnews
 
-### articles_database — MongoDB
+### articles_db — MongoDB
 
 #### Collection: `articles`
 | Field | Type | Notes |
@@ -470,7 +470,7 @@ Query `SHOW TABLES` to enumerate.
 
 ## 8. bookreview
 
-### books_database — PostgreSQL
+### bookreview_db — PostgreSQL
 
 #### Table: `books_info`
 | Field | Type | Notes |
@@ -495,7 +495,13 @@ Query `SHOW TABLES` to enumerate.
 | Field | Type | Notes |
 |---|---|---|
 | purchase_id | str | Join key — fuzzy match to books_info.book_id |
-| *(other columns — verify with PRAGMA table_info)* | | Likely: user_id, rating, text, date, helpful_vote |
+| rating | float | Rating given by reviewer
+| title | str |  Review title 
+| text | str | text
+| review_time | str |  Timestamp when review was posted
+| helpful_vote | int |  Number of helpful votes received
+| verified_purchase | bool | Whether purchase was verified
+
 
 ---
 
@@ -522,19 +528,40 @@ Query `SHOW TABLES` to enumerate.
 | priority_claim | str | List of priority applications |
 | inventor_harmonized | str | Harmonised inventor list |
 | examiner | str | Patent examiner(s) |
-| cpc | str | CPC classification code(s) — join to CPCDefinition_database |
+| cpc | str | CPC classification code(s) — join to patent_CPCDefinition |
 | citation | str | Citation list |
 
 ---
 
-### CPCDefinition_database — (PostgreSQL)
+### patent_CPCDefinition — (PostgreSQL)
 
 #### Table: `cpc_definition`
 | Field | Type | Notes |
 |---|---|---|
 | symbol | str | CPC code e.g. "A61K 31/00" — join key from publicationinfo.cpc |
 | titleFull | str | Full human-readable title of the CPC class |
-| *(other fields)* | | May include level, parent symbol |
+| applicationReferences | str | Informative references to related applications |
+| breakdownCode | bool | Indicates whether the symbol is a breakdown code | 
+| childGroups | str | JSON-like list of child CPC symbols at the next level | 
+| children | str | Additional JSON-like child references |
+| dateRevised |str | Revision date (e.g., “January 5th, 2021”) |
+| definition | str | Full definition of the CPC symbol |
+| glossary | str | Glossary terms and explanations for the symbol |
+| informativeReferences | str | Additional informative references | 
+| ipcConcordant | str | IPC concordance mapping for the CPC symbol | 
+| level | int | Hierarchical level of the CPC symbol (e.g., 1 to 5) | 
+| limitingReferences | str | Scope-limiting references | 
+| notAllocatable | bool | Indicates whether this symbol can be assigned to a patent.  
+| parents | str | JSON-like list of parent CPC symbols in the hierarchy | 
+| precedenceLimitingReferences | str | Precedence-limiting references |  
+| residualReferences | str | Residual references for related but distinct subject matter | 
+| rules | str | Rules for interpreting and applying the CPC symbol.  
+| scopeLimitingReferences | str | Scope-limiting references for the symbol |
+| status | str | Status of the CPC symbol (e.g., “active”, “deleted”) |
+| synonyms | str |  Synonyms for the CPC symbol |  
+| titleFull | str | Full descriptive title of the CPC symbol |
+| titlePart | str | Ab
+
 
 ---
 
@@ -654,7 +681,7 @@ Query `SHOW TABLES` to enumerate.
 
 ## 12. PANCANCER_ATLAS
 
-### clinical_database — PostgreSQL
+### pancancer_clinical — PostgreSQL
 
 #### Table: `clinical_info`
 Over 100 columns. Key columns confirmed:

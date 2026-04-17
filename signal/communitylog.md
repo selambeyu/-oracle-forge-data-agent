@@ -227,7 +227,7 @@ before architecture is finalised.**
 | Apr 9 | X | Thread 1 — Memory Architecture | https://x.com/Kidus5T99409/status/2042253616287789267 | 31 |
 | Apr 9 | X | Thread 2 — Mid-Build Update | https://x.com/Kidus5T99409/status/2042344151518232998 | 17 |
 | Apr 9 | X | Reply to @fabiolauria92 | https://x.com/Kidus5T99409/status/2042344151518232998 | 14 |
-| Apr 9 | X | Reply to @rivestack | PENDING | 7 |
+| Apr 9 | X | Reply to @rivestack | https://x.com/Kidus5T99409/status/2042897418534924327?s=20 | 7 |
 | Apr 10 | Reddit | Post + replies | https://www.reddit.com/r/learnmachinelearning/comments/1shx8ag/ | 867 |
 | Apr 10 | Medium | Article | https://medium.com/@ktewodros41/were-building-a-data-agent-that-competes-on-a-uc-berkeley-benchmark-937d6370eee4 | TBC |
 | Apr 14 | X | Thread 3 — Benchmark | TBC | TBC |
