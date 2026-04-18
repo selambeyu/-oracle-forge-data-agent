@@ -1,7 +1,7 @@
 # Signal Corps Engagement Log
 ## PaLM Team — TRP1 FDE Programme, April 2026
 ## Members: Kidus Tewodros & Mistire Daniel
-## Last Updated: Thursday April 17, 2026
+## Last Updated: Friday April 18, 2026
 
 ---
 
@@ -698,7 +698,7 @@ technical approach:**
 ---
 
 ## WEEK 9
-### Last Updated: Thursday April 17, 2026
+### Last Updated: Friday April 18, 2026
 
 ### Daily Slack Posts
 
@@ -708,7 +708,7 @@ technical approach:**
 | Day 2 — Apr 15 | Interim submission day. Mistire posted full team progress update. Kidus shared Reddit and X thread links. Estif shared meeting link for agent demo alignment. GitHub interim submission confirmed by Estif. Kidus posted final progress update. Mistire published Join Key Problem article to LinkedIn. Tutor commended social engagement and asked for presentation. Presentation delivered. Kidus shared external engagement Google Doc. Sandbox URL shared by Mistire. New Medium article published by Kidus. | Internal Slack — PaLM channel |
 | Day 3 — Apr 16 | Yosef confirmed action items 1 and 2 solved — IO utils module integrated (join key resolver, schema introspections, multi-pass retrieval all merged, duplicated files merged). Self-correction loop bug solved. Project indexed on DeepWiki by Yosef — link shared for team awareness. Bethel raised dataset distribution — each team member to pick 2-3 datasets for testing before submission deadline. Mistire took agnews and googlelocal. | Internal Slack — PaLM channel |
 | Day 4 — Apr 17 | Yosef shared mob session summary — focus on agent improvement and query tracing. Two priorities agreed: improving agent (context manager + self-correction loop) and tracing wrong answers on bookreview and yelp datasets. All team members to focus on current challenge since submission is tomorrow. Bethel confirmed dataset distribution approach. | Internal Slack — PaLM channel |
-| Day 5 — Apr 18 | *(To be updated)* | |
+| Day 5 — Apr 18 | Mistire published LinkedIn article — "Two Weeks, One Benchmark, Six People: What We Actually Learned Building a Production Data Agent". Submission day recap covering DAB benchmark, 3-layer architecture, corrections log, and team role structure. | Internal Slack — PaLM channel |
 
 ---
 
@@ -810,6 +810,28 @@ calculation. KB Layer 2 documents embedded fields.
 
 ---
 
+#### Thread — Join Key Problem (Mistire @Mistire37)
+- **Date:** April 14, 2026
+- **Account:** @Mistire37
+- **Thread tweets:**
+  1. [Tweet 1 — Demo vs reality](https://x.com/i/status/2044037729902633108) — 15 views
+  2. [Tweet 2 — DAB benchmark context](https://x.com/Mistire37/status/2044038329801290183) — 36 views
+  3. [Tweet 3 — Join key problem detail](https://x.com/Mistire37/status/2044038796535017623) — 14 views
+  4. [Tweet 4 — Join key glossary fix](https://x.com/Mistire37/status/2044039744271581207) — 24 views
+  5. [Tweet 5 — Context engineering lesson](https://x.com/Mistire37/status/2044041452586500462) — 13 views
+- **Total views:** 102
+- **Topic:** The join key problem in production data
+  agents. Same customer stored as integer 10023 in
+  PostgreSQL and 'CUST-10023' in MongoDB. DAB
+  benchmark context — 54 queries, 4 database systems,
+  54% best score. Fix: join key glossary injected
+  into agent context at session start. Core lesson:
+  query generation is easy — context engineering
+  is what closes the demo-to-production gap.
+- **Notable responses:** None captured
+
+---
+
 #### Thread 7 — Five Failure Modes
 - **Date:** TBC — planned
 - **URL:** TBC
@@ -820,13 +842,24 @@ benchmark run.
 
 ---
 
-#### Thread 8 — DAB PR Announcement
-- **Date:** TBC — planned for April 18
-- **URL:** TBC
-- **Views:** TBC
-- **Topic:** Benchmark results. DAB leaderboard.
-PR link. Pass@1 score.
-- **Notable responses:** TBC
+#### Thread 8 — DAB Submission Recap (Mistire @Mistire37)
+- **Date:** April 18, 2026
+- **Account:** @Mistire37
+- **Thread tweets:**
+  1. [Tweet 1 — Submission day intro](https://x.com/Mistire37/status/2045399956740088290) — 4 views
+  2. [Tweet 2 — What DataAgentBench tests](https://x.com/Mistire37/status/2045400388082319449) — 7 views
+  3. [Tweet 3 — The context bottleneck](https://x.com/Mistire37/status/2045400627350507650) — 6 views
+  4. [Tweet 4 — 3-layer context fix](https://x.com/Mistire37/status/2045401523660738647) — 7 views
+  5. [Tweet 5 — Self-correction loop](https://x.com/Mistire37/status/2045401689281191983) — 10 views
+  6. [Tweet 6 — Discipline over optimisation](https://x.com/Mistire37/status/2045401880952512706) — 8 views
+- **Total views:** 42
+- **Topic:** Two-week DAB build submission recap.
+  DataAgentBench context — 54 queries, 4 DB systems,
+  54.3% ceiling as an engineering problem not a model
+  problem. 3-layer context architecture fix. Self-
+  correction loop and failure logging. Core lesson:
+  build the harness before optimising the agent.
+- **Notable responses:** None captured
 
 ---
 
@@ -948,6 +981,22 @@ Each One Actually Looks Like in Practice
 
 ---
 
+#### Mistire — LinkedIn Article 2
+- **Title:** Two Weeks, One Benchmark, Six People: What
+We Actually Learned Building a Production Data Agent
+- **Platform:** LinkedIn
+- **URL:** https://www.linkedin.com/pulse/two-weeks-one-benchmark-six-people-what-we-actually-learned-daniel-kr8nf
+- **Published:** April 18, 2026
+- **Status:** ✅ Live
+- **Summary:** Submission-day retrospective covering
+  DAB benchmark reality, 3-layer context architecture,
+  join key problem, evaluation-harness-first approach,
+  unstructured text as unsolved problem, and team
+  role compounding (Drivers / IOs / Signal Corps).
+- **Notable responses:** Pending
+
+---
+
 ### Week 9 Community Intelligence
 
 | Date | Source | Platform | Intel | Impact on Team |
@@ -982,14 +1031,16 @@ Pre-processing pass committed to KB worth testing.
 | Apr 13 | X | Thread 5 — a16z Context Layer | https://x.com/Kidus5T99409/status/2043837626114027593 | 32 views |
 | Apr 13 | Reddit | Post — human refinement | https://www.reddit.com/r/learnmachinelearning/comments/1skrzsh/ | 383 views |
 | Apr 13 | Medium | Article 2 — Mistire Join Key Problem | https://medium.com/@mistiredan/the-join-key-problem-why-the-same-customer-is-a-different-person-in-every-database-10985194c39c | TBC |
-| Apr 14 | X | Thread 6 — Embedded Structured Data | https://x.com/Kidus5T99409/status/2044165219908210861 | 21 views |
+| Apr 14 | X | Thread 6 — Embedded Structured Data (Kidus) | https://x.com/Kidus5T99409/status/2044165219908210861 | 21 views |
+| Apr 14 | X | Thread — Join Key Problem (Mistire) | https://x.com/Mistire37/status/2044038329801290183 | 102 views (5 tweets) |
 | Apr 14 | Reddit | Post — embedded data r/learnmachinelearning | https://www.reddit.com/r/learnmachinelearning/comments/1sll6z2/ | 250 views |
 | Apr 14 | Reddit | Post — embedded data r/aiagents | https://www.reddit.com/r/aiagents/comments/1sll5ph/ | 479 views |
 | Apr 15 | LinkedIn | Article — Mistire Join Key Problem | https://www.linkedin.com/posts/mistire-daniel-87b451229_dataengineering-aiagents-machinelearning-ugcPost-7449983463526625280-mdNM | TBC |
 | Apr 15 | Reddit | Post — failure mode classification | https://www.reddit.com/r/learnmachinelearning/comments/1smipwi/ | 123 views |
 | Apr 15 | Medium | Article 3 — Kidus Five Failure Modes | https://medium.com/@ktewodros41/five-ways-a-data-agent-fails-and-what-each-one-actually-looks-like-in-practice-4546a6e230dc | TBC |
+| Apr 18 | X | Thread 8 — DAB Submission Recap (Mistire) | https://x.com/Mistire37/status/2045399956740088290 | 42 views (6 tweets) |
+| Apr 18 | LinkedIn | Article 4 — Mistire Two Weeks One Benchmark | https://www.linkedin.com/pulse/two-weeks-one-benchmark-six-people-what-we-actually-learned-daniel-kr8nf | Pending |
 | TBC | X | Thread 7 — Five Failure Modes | TBC | TBC |
-| TBC | X | Thread 8 — DAB PR Announcement | TBC | TBC |
 
 ---
 
