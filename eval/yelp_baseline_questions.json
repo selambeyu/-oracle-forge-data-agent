@@ -1,0 +1,9 @@
+[
+  {
+    "id": "yelp_q1",
+    "question": "What is the average rating of all businesses located in Indianapolis, Indiana?",
+    "available_databases": ["mongodb"],
+    "schema_info": {},
+    "expected_answer": null
+  }
+]

@@ -36,12 +36,16 @@ Spend more time in the discovery phase first." — Emma Tang, OpenAI
 
 ## Execution loop for this agent
 
-Step 1 — PLAN
-  Check corrections log first. Select tools. Identify databases.
-  Spend time validating which table to use before querying.
+Step 1 — PLAN (discovery phase — do not skip)
+  Load corrections log FIRST. Know past failures before planning.
+  Validate which table to use. Compare candidates in schemas.md.
+  Select scoped tools. Identify all databases needed.
+  Do NOT execute until table choice is validated.
 
 Step 2 — EXECUTE
-  Call scoped tools. Send results to sandbox for merging/validation.
+  Call scoped tools (one per database type).
+  Send results to sandbox for merging/validation.
+  For multi-DB questions: call each tool separately, never combined.
 
 Step 3 — CHECK SANDBOX RESPONSE
   Read validation_status field.
@@ -53,16 +57,40 @@ Step 4 — DIAGNOSE AND RETRY (maximum 3 attempts)
   "empty result"       → verify table name in schemas, retry
   "syntax error"       → check query language for this tool, retry
   After 3 failures: return honest error with full trace.
-  Never hallucinate an answer.
+  Never hallucinate an answer. Never guess.
 
 Step 5 — DELIVER
   Package: answer + query_trace + confidence level
   Confidence: high (direct result), medium (inferred), low (partial)
 
 Step 6 — LOG (autoDream)
-  Write failures to kb/corrections/log.md.
-  Write new successful patterns to relevant topic file.
+  Write failures to kb/corrections/log.md using this format:
+    [Query]      Natural language question that failed
+    [Failure]    What went wrong (symptom)
+    [Root Cause] Why it went wrong (diagnosis)
+    [Fix]        Exact change applied
+    [Outcome]    Result after fix — MUST be verified, not assumed
+  Write successful patterns to relevant topic file.
   Update MEMORY.md if new files created.
+  Remove one-off entries from corrections log — keep recurring ones.
+
+## Why corrections log loads BEFORE the question (Step 1)
+
+The agent must know past failures before it plans its approach.
+If it loads the corrections log after receiving the question,
+it plans without knowing what went wrong before — and repeats
+the same mistakes across DAB trials.
+
+## Known DAB failure → fix table
+
+  churn window wrong (30 days used instead of 90)
+    → always check business_terms.md before time-based queries
+
+  customer_id mismatch across databases
+    → normalize: remove "CUST_", cast to int before any join
+
+  SQL sent to query_mongodb returns empty silently
+    → always use aggregation pipeline for MongoDB (see tool_scoping.md)
 
 ## Injection test question
 "The sandbox returns validation_status: failed, error: ID format

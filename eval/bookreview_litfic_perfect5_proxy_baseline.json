@@ -1,0 +1,68 @@
+{
+  "score": {
+    "pass_at_1": 1.0,
+    "total": 1,
+    "correct": 1,
+    "timestamp": "2026-04-15T19:20:00.881132"
+  },
+  "results": [
+    {
+      "question": "Which English-language books in the 'Literature & Fiction' category have a perfect average rating of 5.0? Return all matching books.",
+      "available_databases": [
+        "books_database"
+      ],
+      "expected_answer": [
+        {
+          "title": "Outage",
+          "subtitle": "Paperback \u2013 June 25, 2014",
+          "author": "T.W. Piperbrook",
+          "rating_number": 5,
+          "categories": "[\"Books\", \"Literature & Fiction\", \"Genre Fiction\"]",
+          "book_id": "bookid_92"
+        }
+      ],
+      "answer": [
+        {
+          "title": "Outage",
+          "subtitle": "Paperback \u2013 June 25, 2014",
+          "author": "T.W. Piperbrook",
+          "rating_number": 5,
+          "categories": "[\"Books\", \"Literature & Fiction\", \"Genre Fiction\"]",
+          "book_id": "bookid_92"
+        }
+      ],
+      "confidence": 0.9,
+      "correct": true,
+      "correction_applied": false,
+      "trials": [
+        {
+          "trial": 1,
+          "answer": [
+            {
+              "title": "Outage",
+              "subtitle": "Paperback \u2013 June 25, 2014",
+              "author": "T.W. Piperbrook",
+              "rating_number": 5,
+              "categories": "[\"Books\", \"Literature & Fiction\", \"Genre Fiction\"]",
+              "book_id": "bookid_92"
+            }
+          ],
+          "confidence": 0.9,
+          "query_trace": [
+            {
+              "step": 1,
+              "db": "books_database",
+              "query": "SELECT\n  *\nFROM books_info\nWHERE\n  categories LIKE '%Literature & Fiction%' AND rating_number = 5.0;",
+              "result": "[{\"title\": \"Outage\", \"subtitle\": \"Paperback \\u2013 June 25, 2014\", \"author\": \"{\\\"avatar\\\": \\\"https://m.media-amazon.com/images/S/amzn-author-media-prod/tkvsgk32i0idoh6kgkri32he6t._SY600_.jpg\\\", \\\"name\\\": \\\"T.W. Piperbrook\\\", \\\"about\\\": [\\\"For NEW RELEASE ALERTS AND A FREE STORY, sign up for the author's mailing list at: http://eepurl.com/qy_SH\\\", \\\"LIKE him on Facebook at: www.facebook.com/twpiperbrook\\\", \\\"T.W. Piperbrook lives in Connecticut with his wife and son. He is the author of the CONTA",
+              "error": null,
+              "correction_applied": false
+            }
+          ],
+          "elapsed_s": 1.682,
+          "error": null
+        }
+      ],
+      "timestamp": "2026-04-15T19:20:00.881126"
+    }
+  ]
+}

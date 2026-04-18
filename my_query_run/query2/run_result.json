@@ -1,0 +1,70 @@
+{
+  "exported_at": "2026-04-15T17:58:53.694286+00:00",
+  "result": {
+    "answer": [
+      {
+        "title": "Outage",
+        "author": "T.W. Piperbrook"
+      }
+    ],
+    "query_trace": [
+      {
+        "step": 1,
+        "db": "books_database",
+        "query": "SELECT\n  *\nFROM books_info\nWHERE\n  categories LIKE '%Literature & Fiction%' AND rating_number = 5.0;",
+        "result": "[{\"title\": \"Outage\", \"subtitle\": \"Paperback \\u2013 June 25, 2014\", \"author\": \"{\\\"avatar\\\": \\\"https://m.media-amazon.com/images/S/amzn-author-media-prod/tkvsgk32i0idoh6kgkri32he6t._SY600_.jpg\\\", \\\"name\\\": \\\"T.W. Piperbrook\\\", \\\"about\\\": [\\\"For NEW RELEASE ALERTS AND A FREE STORY, sign up for the author's mailing list at: http://eepurl.com/qy_SH\\\", \\\"LIKE him on Facebook at: www.facebook.com/twpiperbrook\\\", \\\"T.W. Piperbrook lives in Connecticut with his wife and son. He is the author of the CONTA",
+        "error": null,
+        "correction_applied": false
+      }
+    ],
+    "confidence": 0.9,
+    "tool_call_ids": [
+      "80640955-d41f-4e3b-ac79-54a7de12c87d"
+    ],
+    "correction_applied": false
+  },
+  "trace_events": [
+    {
+      "event_id": "80640955-d41f-4e3b-ac79-54a7de12c87d",
+      "timestamp": "2026-04-15T17:58:53.668815+00:00",
+      "session_id": "16a3116e",
+      "tool_name": "run_query",
+      "parameters": {
+        "query": "SELECT\n  *\nFROM books_info\nWHERE\n  categories LIKE '%Literature & Fiction%' AND rating_number = 5.0;",
+        "database": "books_database"
+      },
+      "result_status": "success",
+      "execution_time": 0.0,
+      "error": null
+    },
+    {
+      "event_id": "f9c9a01d-4f82-47e4-85ef-08a5355ec121",
+      "timestamp": "2026-04-15T17:58:53.669000+00:00",
+      "session_id": "16a3116e",
+      "query_text": "Which English-language books in the 'Literature & Fiction' category have a perfect average rating of 5.0? Return all matching books.",
+      "available_databases": [
+        "books_database"
+      ],
+      "tool_call_ids": [
+        "80640955-d41f-4e3b-ac79-54a7de12c87d"
+      ],
+      "answer": [
+        {
+          "title": "Outage",
+          "author": "T.W. Piperbrook"
+        }
+      ],
+      "expected_answer": null,
+      "correct": false,
+      "confidence": 0.9,
+      "correction_applied": false,
+      "execution_time": 0.0
+    }
+  ],
+  "db_configs": {
+    "books_database": {
+      "type": "postgres",
+      "connection_string": ""
+    }
+  }
+}

@@ -1,0 +1,31 @@
+# Oracle Forge — Cloudflare Worker: Code Execution Sandbox
+#
+# IMPORTANT: Change `name` to match the project name you created on
+# the Cloudflare dashboard (Workers & Pages → your project name).
+#
+# Deploy manually:  cd workers/sandbox && wrangler deploy
+# Local dev:        cd workers/sandbox && wrangler dev
+
+name = "sandbox"
+main = "src/index.js"
+compatibility_date = "2024-09-23"
+compatibility_flags = ["nodejs_compat"]
+account_id = "d0a50020c18281c7fc510280facca780"
+
+# ── Static environment variables (non-secret) ──────────────────────────────
+[vars]
+ENVIRONMENT = "production"
+
+# ── Secrets (set via CLI, never in this file) ──────────────────────────────
+# wrangler secret put AGENT_SECRET
+#   Used to verify requests come from your agent (optional but recommended).
+#   In your agent: set Authorization: Bearer <AGENT_SECRET> header.
+
+# ── Routes ─────────────────────────────────────────────────────────────────
+# Workers are accessible at:
+#   https://<name>.<your-workers-subdomain>.workers.dev
+#
+# To add a custom domain uncomment and edit:
+# routes = [
+#   { pattern = "sandbox.yourdomain.com/*", zone_name = "yourdomain.com" }
+# ]

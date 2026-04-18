@@ -1,0 +1,28 @@
+.env
+*.secret
+toolbox.log
+duckdb_mcp.log
+duckdb_mcp.pid
+query_bookreview/
+
+# Python
+__pycache__/
+*.pyc
+
+# OS
+.DS_Store
+
+# Binary
+bin/toolbox
+
+.kiro/
+.hypothesis/
+CLAUDE.md
+ut/
+results/
+memory/
+agent/*.md
+query/
+
+agent_server.log
+agent_server.pid

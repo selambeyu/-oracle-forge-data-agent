@@ -1,0 +1,112 @@
+{
+  "score": {
+    "pass_at_1": 0.0,
+    "total": 3,
+    "correct": 0,
+    "timestamp": "2026-04-15T18:20:21.155784"
+  },
+  "results": [
+    {
+      "question": "What is the average star rating for businesses in Las Vegas?",
+      "available_databases": [
+        "postgres"
+      ],
+      "expected_answer": null,
+      "answer": 201.705,
+      "confidence": 0.9,
+      "correct": false,
+      "correction_applied": false,
+      "trials": [
+        {
+          "trial": 1,
+          "answer": 201.705,
+          "confidence": 0.9,
+          "query_trace": [
+            {
+              "step": 1,
+              "db": "postgres",
+              "query": "SELECT AVG(rating_number)\nFROM books_info;",
+              "result": "[{\"avg\": 201.705}]",
+              "error": null,
+              "correction_applied": false
+            }
+          ],
+          "elapsed_s": 3.14,
+          "error": null
+        }
+      ],
+      "timestamp": "2026-04-15T18:20:15.907723"
+    },
+    {
+      "question": "How many reviews mention the word 'excellent'?",
+      "available_databases": [
+        "mongodb"
+      ],
+      "expected_answer": null,
+      "answer": 0,
+      "confidence": 0.9,
+      "correct": false,
+      "correction_applied": false,
+      "trials": [
+        {
+          "trial": 1,
+          "answer": 0,
+          "confidence": 0.9,
+          "query_trace": [
+            {
+              "step": 1,
+              "db": "mongodb",
+              "query": "[\n  {\"$match\": {\"review\": {\"$regex\": \"excellent\", \"$options\": \"i\"}}},\n  {\"$count\": \"reviews_with_excellent\"}\n]",
+              "result": "{\"error\": \"error processing request: unable to execute query: ERROR: syntax error at or near \\\"[\\\" (SQLSTATE 42601)\"}",
+              "error": null,
+              "correction_applied": false
+            }
+          ],
+          "elapsed_s": 1.501,
+          "error": null
+        }
+      ],
+      "timestamp": "2026-04-15T18:20:17.409042"
+    },
+    {
+      "question": "Which business has the most reviews across all databases?",
+      "available_databases": [
+        "postgres",
+        "mongodb"
+      ],
+      "expected_answer": null,
+      "answer": "Error: Unable to retrieve data from databases.",
+      "confidence": 0.65,
+      "correct": false,
+      "correction_applied": true,
+      "trials": [
+        {
+          "trial": 1,
+          "answer": "Error: Unable to retrieve data from databases.",
+          "confidence": 0.65,
+          "query_trace": [
+            {
+              "step": 1,
+              "db": "mongodb",
+              "query": "[\n  {\n    \"$lookup\": {\n      \"from\": \"reviews\",\n      \"let\": { \"business_id_int\": { \"$toInt\": { \"$replaceAll\": { \"input\": \"$business_id\", \"find\": \"businessid_\", \"replacement\": \"\" } } } },\n      \"pipeline\": [\n        {\n          \"$match\": {\n            \"$expr\": {\n              \"$eq\": [\n                { \"$toInt\": { \"$replaceAll\": { \"input\": \"$business_id\", \"find\": \"businessid_\", \"replacement\": \"\" } } },\n                \"$$business_id_int\"\n              ]\n            }\n          }\n        }\n      ],\n      \"as\": \"business_reviews\"\n    }\n  },\n  {\n    \"$unwind\": \"$business_reviews\"\n  },\n  {\n    \"$group\": {\n      \"_id\": \"$name\",\n      \"review_count\": {\n        \"$sum\": 1\n      }\n    }\n  },\n  {\n    \"$sort\": {\n      \"review_count\": -1\n    }\n  },\n  {\n    \"$limit\": 1\n  }\n]",
+              "result": "{\"error\": \"error processing request: unable to execute query: ERROR: syntax error at or near \\\"[\\\" (SQLSTATE 42601)\"}",
+              "error": null,
+              "correction_applied": true
+            },
+            {
+              "step": 2,
+              "db": "postgres",
+              "query": "SELECT store\nFROM books_info\nGROUP BY store\nWHERE COUNT IS NOT NULL ORDER BY COUNT(*) DESC\nLIMIT 1;",
+              "result": "{\"error\": \"error processing request: unable to execute query: ERROR: syntax error at or near \\\"WHERE\\\" (SQLSTATE 42601)\"}",
+              "error": null,
+              "correction_applied": true
+            }
+          ],
+          "elapsed_s": 3.747,
+          "error": null
+        }
+      ],
+      "timestamp": "2026-04-15T18:20:21.155777"
+    }
+  ]
+}

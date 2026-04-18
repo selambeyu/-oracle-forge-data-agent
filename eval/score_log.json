@@ -1,0 +1,22 @@
+[
+  {
+    "timestamp": "2026-04-13T17:41:23.130860+00:00",
+    "run_id": "e7021d5e",
+    "pass_at_1_score": 100.0,
+    "total_queries": 1,
+    "correct_first_attempt": 1,
+    "corrections_applied": 0,
+    "average_execution_time": 0.0,
+    "changes_since_last_run": "real execution engine smoke run"
+  },
+  {
+    "timestamp": "2026-04-13T17:44:30.569409+00:00",
+    "run_id": "30463a8c",
+    "pass_at_1_score": 100.0,
+    "total_queries": 1,
+    "correct_first_attempt": 1,
+    "corrections_applied": 0,
+    "average_execution_time": 0.0,
+    "changes_since_last_run": "real execution engine smoke run"
+  }
+]
